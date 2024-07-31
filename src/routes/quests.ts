@@ -42,8 +42,8 @@ router.delete('/delete/:id', async (req, res) => {
     }
 });
 
-router.put('/deactivate/:id', async (req, res) => {
-    const { id } = req.params;
+router.put('/deactivate', async (req, res) => {
+    const { id } = req.body;
 
     if (!id) {
         logger.error('Missing required field: id');
@@ -57,6 +57,34 @@ router.put('/deactivate/:id', async (req, res) => {
             .update(quest)
             .set({
                 active: false,
+            })
+            .where(eq(quest.id, Number(id)))
+            .returning()
+            .execute();
+        res.json({
+            data: updatedQuest,
+        });
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ error: 'An error occurred' });
+    }
+});
+
+router.put('/activate', async (req, res) => {
+    const { id } = req.body;
+
+    if (!id) {
+        logger.error('Missing required field: id');
+        return res.status(400).json({
+            error: 'Missing required field: id',
+        });
+    }
+
+    try {
+        const updatedQuest = await db
+            .update(quest)
+            .set({
+                active: true,
             })
             .where(eq(quest.id, Number(id)))
             .returning()
@@ -94,10 +122,24 @@ router.post('/create', async (req, res) => {
     }
 });
 
-router.get('/', async (req, res) => {
+router.get('/active', async (req, res) => {
     try {
         const result = await db.query.quest.findMany({
             where: eq(quest.active, true),
+            orderBy: desc(quest.points),
+        });
+        res.json({
+            data: result,
+        });
+    } catch (error) {
+        logger.error(error);
+        res.status(500).json({ error: 'An error occurred' });
+    }
+});
+
+router.get('/all', async (req, res) => {
+    try {
+        const result = await db.query.quest.findMany({
             orderBy: desc(quest.points),
         });
         res.json({
